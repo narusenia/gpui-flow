@@ -14,6 +14,8 @@ pub struct Minimap {
     state: Entity<FlowState>,
     /// Container bounds captured during rendering (for viewport calculations).
     container_bounds: Option<(f32, f32)>,
+    /// Minimap canvas origin in window coordinates, updated each paint.
+    canvas_origin: std::cell::Cell<(f32, f32)>,
 }
 
 impl Minimap {
@@ -21,6 +23,7 @@ impl Minimap {
         Self {
             state,
             container_bounds: None,
+            canvas_origin: std::cell::Cell::new((0.0, 0.0)),
         }
     }
 
@@ -37,6 +40,9 @@ impl Render for Minimap {
         let state_for_mouse = self.state.clone();
         let entity_id = cx.entity_id();
         let container = self.container_bounds.unwrap_or((900.0, 600.0));
+        let origin_cell = self.canvas_origin.clone();
+        let origin_for_down = self.canvas_origin.clone();
+        let origin_for_move = self.canvas_origin.clone();
 
         div()
             .id("flow-minimap")
@@ -51,6 +57,7 @@ impl Render for Minimap {
                 canvas(
                     |_bounds, _window, _cx| {},
                     move |bounds, _: (), window, cx| {
+                        origin_cell.set((bounds.origin.x.as_f32(), bounds.origin.y.as_f32()));
                         let state = state_for_canvas.read(cx);
                         paint_minimap(&bounds, state, container, window);
                     },
@@ -61,8 +68,9 @@ impl Render for Minimap {
                 let state = state_for_mouse.clone();
                 let entity_id = entity_id;
                 move |event, _window, cx| {
-                    let mx = event.position.x.as_f32();
-                    let my = event.position.y.as_f32();
+                    let o = origin_for_down.get();
+                    let mx = event.position.x.as_f32() - o.0;
+                    let my = event.position.y.as_f32() - o.1;
                     pan_to_minimap_point(&state, mx, my, container, cx);
                     cx.notify(entity_id);
                 }
@@ -72,8 +80,9 @@ impl Render for Minimap {
                 let entity_id = entity_id;
                 move |event, _window, cx| {
                     if event.pressed_button == Some(MouseButton::Left) {
-                        let mx = event.position.x.as_f32();
-                        let my = event.position.y.as_f32();
+                        let o = origin_for_move.get();
+                        let mx = event.position.x.as_f32() - o.0;
+                        let my = event.position.y.as_f32() - o.1;
                         pan_to_minimap_point(&state, mx, my, container, cx);
                         cx.notify(entity_id);
                     }
@@ -105,10 +114,7 @@ fn pan_to_minimap_point(
         let offset_x = (inner_w - graph_bounds.2 * scale) / 2.0 + MINIMAP_PADDING;
         let offset_y = (inner_h - graph_bounds.3 * scale) / 2.0 + MINIMAP_PADDING;
 
-        // Convert minimap click to flow coordinates
-        // mx is relative to minimap bounds origin, but we receive absolute screen pos
-        // We need to account for the minimap div position, but since canvas bounds
-        // aren't available here, we approximate by using relative coordinates
+        // Convert minimap click (already offset to minimap-local coords) to flow coordinates
         let flow_x = (mx - offset_x) / scale + graph_bounds.0;
         let flow_y = (my - offset_y) / scale + graph_bounds.1;
 

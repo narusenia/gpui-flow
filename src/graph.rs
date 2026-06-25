@@ -33,6 +33,8 @@ pub struct FlowGraph {
     node_bg_color: u32,
     /// Node wrapper border color.
     node_border_color: u32,
+    /// Text color for nodes (default: 0xfafafa for dark themes).
+    text_color: u32,
     /// Whether we've done the initial measurement pass.
     measured: bool,
 }
@@ -52,6 +54,7 @@ impl FlowGraph {
             bg_pattern: BackgroundPattern::Dots,
             node_bg_color: 0xffffff,
             node_border_color: 0xe2e2e2,
+            text_color: 0xfafafa,
             measured: false,
         }
     }
@@ -112,6 +115,12 @@ impl FlowGraph {
     /// Set the node wrapper border color.
     pub fn node_border_color(mut self, color: u32) -> Self {
         self.node_border_color = color;
+        self
+    }
+
+    /// Set the default text color for node content.
+    pub fn text_color(mut self, color: u32) -> Self {
+        self.text_color = color;
         self
     }
 
@@ -700,6 +709,7 @@ impl Render for FlowGraph {
         let state_for_mouse_up = self.state.clone();
         let state_for_key = self.state.clone();
         let state_for_pinch = self.state.clone();
+        let text_color = self.text_color;
 
         div()
             .id("flow-graph")
@@ -708,6 +718,7 @@ impl Render for FlowGraph {
             .overflow_hidden()
             .relative()
             .bg(gpui::rgb(bg_color))
+            .text_color(gpui::rgb(text_color))
             .cursor(if is_panning {
                 CursorStyle::ClosedHand
             } else if is_connecting {
