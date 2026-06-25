@@ -286,7 +286,11 @@ impl FlowGraph {
                     });
                 }
             })
-            .child(content)
+            .child(
+                div()
+                    .text_color(gpui::rgb(text_color))
+                    .child(content)
+            )
             .child(measure_canvas)
             .children(handle_elements)
             .into_any_element()
