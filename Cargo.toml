@@ -4,17 +4,22 @@ version = "0.1.0"
 edition = "2024"
 description = "A node-based flow graph editor for GPUI, inspired by React Flow / xyflow."
 license = "MIT"
-repository = "https://github.com/pacifio/gpui-flow"
-homepage = "https://github.com/pacifio/gpui-flow"
+repository = "https://github.com/narusenia/gpui-flow"
+homepage = "https://github.com/narusenia/gpui-flow"
 readme = "README.md"
 keywords = ["gpui", "flow", "graph", "node-editor", "react-flow"]
 categories = ["gui", "graphics"]
 
 [dependencies]
-gpui = { git = "https://github.com/zed-industries/zed", package = "gpui" }
+gpui = { git = "https://github.com/gpui-ce/gpui-ce", rev = "ce08af96db6c3474ab3b388325cdd1a7c3de06d9" }
 
 [dev-dependencies]
-gpui_macos = { git = "https://github.com/zed-industries/zed", package = "gpui_macos", features = ["font-kit"] }
+gpui_platform = { git = "https://github.com/gpui-ce/gpui-ce", rev = "ce08af96db6c3474ab3b388325cdd1a7c3de06d9", features = ["font-kit"] }
+gpui-component = { git = "https://github.com/narusenia/gpui-component", branch = "gpui-ce-compat" }
+
+[[example]]
+name = "component_compat"
+path = "examples/component_compat.rs"
 
 [[example]]
 name = "basic"
@@ -35,7 +40,7 @@ opt-level = 1
 
 [profile.dev.package]
 gpui = { opt-level = 3 }
-gpui_macos = { opt-level = 3 }
+gpui_platform = { opt-level = 3 }
 taffy = { opt-level = 3 }
 
 [lints.clippy]

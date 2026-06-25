@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use gpui::*;
@@ -322,8 +321,7 @@ fn node_label(node: &FlowNode) -> String {
 }
 
 fn main() {
-    Application::with_platform(Rc::new(gpui_macos::MacPlatform::new(false))).run(
-        move |cx: &mut App| {
+    gpui_platform::application().run(move |cx: &mut App| {
             let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
 
             cx.open_window(

@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use gpui::*;
 use gpui_flow::*;
 
@@ -119,8 +117,7 @@ fn render_sink(node: &FlowNode, _w: &mut Window, _cx: &mut App) -> AnyElement {
 }
 
 fn main() {
-    Application::with_platform(Rc::new(gpui_macos::MacPlatform::new(false))).run(
-        move |cx: &mut App| {
+    gpui_platform::application().run(move |cx: &mut App| {
             let bounds = Bounds::centered(None, size(px(1100.0), px(750.0)), cx);
 
             cx.open_window(

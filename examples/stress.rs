@@ -1,8 +1,6 @@
 //! Stress test: 1000 nodes, incremental random edge additions.
 //! Press Space to play/pause. Clean monochromatic dark UI.
 
-use std::rc::Rc;
-
 use gpui::*;
 use gpui_flow::*;
 
@@ -219,8 +217,7 @@ fn render_stress_node(node: &FlowNode, _window: &mut Window, _cx: &mut App) -> A
 }
 
 fn main() {
-    Application::with_platform(Rc::new(gpui_macos::MacPlatform::new(false))).run(
-        move |cx: &mut App| {
+    gpui_platform::application().run(move |cx: &mut App| {
             let bounds = Bounds::centered(None, size(px(1400.0), px(900.0)), cx);
 
             cx.open_window(
