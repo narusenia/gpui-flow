@@ -721,8 +721,9 @@ impl Render for FlowGraph {
                     |_bounds, _window, _cx| {},
                     move |bounds, _: (), window, cx| {
                         Self::paint_grid(&bounds, &viewport_for_canvas, grid_color, bg_pattern, window);
+                        let origin = (bounds.origin.x.as_f32(), bounds.origin.y.as_f32());
                         let state = state_for_canvas.read(cx);
-                        edges::paint_edges(state, window);
+                        edges::paint_edges(state, window, origin);
 
                         // Paint draft connection line
                         if let Some(ref draft) = connecting_draft {

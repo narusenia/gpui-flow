@@ -15,7 +15,11 @@ use self::straight::get_straight_path;
 const ARROW_SIZE: f32 = 6.0;
 
 /// Paint all edges for the flow graph.
-pub fn paint_edges(state: &FlowState, window: &mut Window) {
+///
+/// `origin` is the top-left of the flow graph canvas in window coordinates.
+/// All paint calls use window-absolute coordinates, so this offset is added
+/// to every computed screen position.
+pub fn paint_edges(state: &FlowState, window: &mut Window, origin: (f32, f32)) {
     // Viewport culling bounds
     let win_size = window.viewport_size();
     let win_w = win_size.width.as_f32();
@@ -43,8 +47,8 @@ pub fn paint_edges(state: &FlowState, window: &mut Window) {
         let source_handle_pos = find_handle_position(source_node, &edge.source_handle, HandleType::Source);
         let target_handle_pos = find_handle_position(target_node, &edge.target_handle, HandleType::Target);
 
-        let (sx, sy) = handle_center_from_node(source_node, source_handle_pos, &state.viewport);
-        let (tx, ty) = handle_center_from_node(target_node, target_handle_pos, &state.viewport);
+        let (sx, sy) = handle_center_from_node(source_node, source_handle_pos, &state.viewport, origin);
+        let (tx, ty) = handle_center_from_node(target_node, target_handle_pos, &state.viewport, origin);
 
         // Cull edges where both endpoints are off-screen
         let both_off_x = (sx < -margin && tx < -margin) || (sx > win_w + margin && tx > win_w + margin);
@@ -334,14 +338,18 @@ fn find_handle_position(
 }
 
 /// Compute handle center directly from a node reference (no HashMap lookup).
-fn handle_center_from_node(node: &FlowNode, handle_pos: HandlePosition, viewport: &Viewport) -> (f32, f32) {
+///
+/// `origin` offsets the result into window-absolute coordinates.
+fn handle_center_from_node(node: &FlowNode, handle_pos: HandlePosition, viewport: &Viewport, origin: (f32, f32)) -> (f32, f32) {
     let (sx, sy) = viewport.flow_to_screen(node.position);
     let w = node.measured_width.map(|p| p.as_f32()).unwrap_or(114.0);
     let h = node.measured_height.map(|p| p.as_f32()).unwrap_or(54.0);
+    let ox = origin.0;
+    let oy = origin.1;
     match handle_pos {
-        HandlePosition::Top => (sx + w / 2.0, sy),
-        HandlePosition::Bottom => (sx + w / 2.0, sy + h),
-        HandlePosition::Left => (sx, sy + h / 2.0),
-        HandlePosition::Right => (sx + w, sy + h / 2.0),
+        HandlePosition::Top => (ox + sx + w / 2.0, oy + sy),
+        HandlePosition::Bottom => (ox + sx + w / 2.0, oy + sy + h),
+        HandlePosition::Left => (ox + sx, oy + sy + h / 2.0),
+        HandlePosition::Right => (ox + sx + w, oy + sy + h / 2.0),
     }
 }
