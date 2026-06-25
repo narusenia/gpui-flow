@@ -43,5 +43,11 @@ gpui = { opt-level = 3 }
 gpui_platform = { opt-level = 3 }
 taffy = { opt-level = 3 }
 
+[patch.crates-io]
+gpui = { git = "https://github.com/gpui-ce/gpui-ce", rev = "ce08af96db6c3474ab3b388325cdd1a7c3de06d9" }
+
+[patch."https://github.com/zed-industries/zed"]
+gpui = { git = "https://github.com/gpui-ce/gpui-ce", rev = "ce08af96db6c3474ab3b388325cdd1a7c3de06d9" }
+
 [lints.clippy]
 type_complexity = "allow"
