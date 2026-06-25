@@ -220,7 +220,6 @@ impl FlowGraph {
                     .border_1()
                     .border_color(gpui::rgb(node_border))
                     .rounded_lg()
-                    .shadow_sm()
                     .px_4()
                     .py_2()
             })
