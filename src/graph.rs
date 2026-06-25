@@ -174,6 +174,7 @@ impl FlowGraph {
         let show_chrome = self.show_node_chrome;
         let node_bg = self.node_bg_color;
         let node_border = self.node_border_color;
+        let text_color = self.text_color;
         let element_id: ElementId = ElementId::Name(node.id.clone());
 
         // Build handle dot elements (skip if not connecting to reduce overhead)
@@ -212,6 +213,7 @@ impl FlowGraph {
             .absolute()
             .left(px(screen_x))
             .top(px(screen_y))
+            .text_color(gpui::rgb(text_color))
             // Node box styling on the wrapper so handles align to visual edges
             .when(show_chrome, |el: Stateful<Div>| {
                 el.bg(gpui::rgb(node_bg))
