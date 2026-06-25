@@ -16,6 +16,9 @@ pub struct Minimap {
     container_bounds: Option<(f32, f32)>,
     /// Minimap canvas origin in window coordinates, updated each paint.
     canvas_origin: std::cell::Cell<(f32, f32)>,
+    /// Whether the mouse-down originated on the minimap (prevents accidental pan
+    /// when dragging across from the main canvas).
+    is_dragging: std::cell::Cell<bool>,
 }
 
 impl Minimap {
@@ -24,6 +27,7 @@ impl Minimap {
             state,
             container_bounds: None,
             canvas_origin: std::cell::Cell::new((0.0, 0.0)),
+            is_dragging: std::cell::Cell::new(false),
         }
     }
 
@@ -43,6 +47,9 @@ impl Render for Minimap {
         let origin_cell = self.canvas_origin.clone();
         let origin_for_down = self.canvas_origin.clone();
         let origin_for_move = self.canvas_origin.clone();
+        let dragging_for_down = self.is_dragging.clone();
+        let dragging_for_move = self.is_dragging.clone();
+        let dragging_for_up = self.is_dragging.clone();
 
         div()
             .id("flow-minimap")
@@ -68,6 +75,7 @@ impl Render for Minimap {
                 let state = state_for_mouse.clone();
                 let entity_id = entity_id;
                 move |event, _window, cx| {
+                    dragging_for_down.set(true);
                     let o = origin_for_down.get();
                     let mx = event.position.x.as_f32() - o.0;
                     let my = event.position.y.as_f32() - o.1;
@@ -75,11 +83,16 @@ impl Render for Minimap {
                     cx.notify(entity_id);
                 }
             })
+            .on_mouse_up(MouseButton::Left, {
+                move |_event, _window, _cx| {
+                    dragging_for_up.set(false);
+                }
+            })
             .on_mouse_move({
                 let state = state_for_mouse.clone();
                 let entity_id = entity_id;
                 move |event, _window, cx| {
-                    if event.pressed_button == Some(MouseButton::Left) {
+                    if dragging_for_move.get() && event.pressed_button == Some(MouseButton::Left) {
                         let o = origin_for_move.get();
                         let mx = event.position.x.as_f32() - o.0;
                         let my = event.position.y.as_f32() - o.1;
