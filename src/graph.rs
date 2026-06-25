@@ -574,9 +574,9 @@ impl FlowGraph {
     }
 
     /// Paint a draft connection line from handle to mouse cursor.
-    fn paint_connection_draft(draft: &ConnectionDraft, window: &mut Window) {
+    fn paint_connection_draft(draft: &ConnectionDraft, origin: (f32, f32), window: &mut Window) {
         let color: Background = gpui::rgba(0x3b82f680).into();
-        let (sx, sy) = draft.from_point;
+        let (sx, sy) = (draft.from_point.0 + origin.0, draft.from_point.1 + origin.1);
         let (tx, ty) = draft.to_point;
 
         let mut builder = PathBuilder::stroke(px(2.0));
@@ -727,7 +727,7 @@ impl Render for FlowGraph {
 
                         // Paint draft connection line
                         if let Some(ref draft) = connecting_draft {
-                            Self::paint_connection_draft(draft, window);
+                            Self::paint_connection_draft(draft, origin, window);
                         }
 
                         // Paint selection box
