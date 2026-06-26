@@ -226,27 +226,36 @@ impl FlowState {
 
     /// Find the screen-space center of a handle.
     ///
-    /// Computes the position directly from the node's flow coordinates + viewport,
-    /// using measured wrapper dimensions when available.
+    /// When multiple handles share the same side, they are distributed evenly.
     pub fn find_handle_center(
         &self,
         node_id: &NodeId,
-        _handle_id: &Option<SharedString>,
+        handle_id: &Option<SharedString>,
         handle_position: HandlePosition,
     ) -> Option<(f32, f32)> {
         let node = self.get_node(node_id)?;
         let (sx, sy) = self.viewport.flow_to_screen(node.position);
 
-        // Use measured wrapper dimensions if available, otherwise estimate.
-        // measured_width/height store the full wrapper size (set by the measurement canvas).
         let w = node.measured_width.map(|p| p.as_f32()).unwrap_or(114.0);
         let h = node.measured_height.map(|p| p.as_f32()).unwrap_or(54.0);
 
+        let same_side: Vec<_> = node
+            .handles
+            .iter()
+            .filter(|hd| hd.position == handle_position)
+            .collect();
+        let count = same_side.len().max(1);
+        let index = handle_id
+            .as_ref()
+            .and_then(|hid| same_side.iter().position(|hd| hd.id.as_ref() == Some(hid)))
+            .unwrap_or(0);
+        let ratio = (index as f32 + 1.0) / (count as f32 + 1.0);
+
         let (cx, cy) = match handle_position {
-            HandlePosition::Top => (sx + w / 2.0, sy),
-            HandlePosition::Bottom => (sx + w / 2.0, sy + h),
-            HandlePosition::Left => (sx, sy + h / 2.0),
-            HandlePosition::Right => (sx + w, sy + h / 2.0),
+            HandlePosition::Top => (sx + w * ratio, sy),
+            HandlePosition::Bottom => (sx + w * ratio, sy + h),
+            HandlePosition::Left => (sx, sy + h * ratio),
+            HandlePosition::Right => (sx + w, sy + h * ratio),
         };
         Some((cx, cy))
     }

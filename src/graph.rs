@@ -177,9 +177,11 @@ impl FlowGraph {
         let text_color = self.text_color;
         let element_id: ElementId = ElementId::Name(node.id.clone());
 
-        // Build handle dot elements (skip if not connecting to reduce overhead)
+        let nw = node.measured_width.map(|p| p.as_f32()).unwrap_or(114.0);
+        let nh = node.measured_height.map(|p| p.as_f32()).unwrap_or(54.0);
+
         let handle_elements = if !node.handles.is_empty() {
-            Self::render_handles(&node.handles, &node.id, &state, is_connecting, snap_node_id, node_bg, node_border)
+            Self::render_handles(&node.handles, &node.id, &state, is_connecting, snap_node_id, node_bg, node_border, nw, nh)
         } else {
             Vec::new()
         };
@@ -297,6 +299,8 @@ impl FlowGraph {
     }
 
     /// Render handle dots for a node.
+    ///
+    /// When multiple handles share the same side, they are distributed evenly.
     fn render_handles(
         handles: &[HandleDef],
         node_id: &NodeId,
@@ -305,10 +309,19 @@ impl FlowGraph {
         snap_node_id: Option<&NodeId>,
         default_bg: u32,
         default_border: u32,
+        node_width: f32,
+        node_height: f32,
     ) -> Vec<AnyElement> {
         let handle_size = 10.0;
         let half = handle_size / 2.0;
         let is_snapped_node = snap_node_id == Some(node_id);
+
+        // Pre-compute per-side counts for even distribution.
+        let mut side_counts: HashMap<HandlePosition, usize> = HashMap::new();
+        for h in handles {
+            *side_counts.entry(h.position).or_default() += 1;
+        }
+        let mut side_index: HashMap<HandlePosition, usize> = HashMap::new();
 
         handles
             .iter()
@@ -320,15 +333,18 @@ impl FlowGraph {
                 let handle_position = handle.position;
                 let state = state.clone();
 
+                let count = side_counts.get(&handle_position).copied().unwrap_or(1);
+                let index = side_index.entry(handle_position).or_insert(0);
+                let ratio = (*index as f32 + 1.0) / (count as f32 + 1.0);
+                *index += 1;
+
                 // Highlight: strongly if this is the snapped target, mildly if potential target
                 let is_snap_target = is_snapped_node && handle_type == HandleType::Target;
                 let is_potential_target = is_connecting && handle_type == HandleType::Target;
 
                 let (bg_color, border_color, size_mult) = if is_snap_target {
-                    // Actively snapped — large blue pulse
                     (gpui::rgb(0x3b82f6), gpui::rgb(0x1d4ed8), 1.4)
                 } else if is_potential_target {
-                    // Valid potential target — subtle blue
                     (gpui::rgb(0x93c5fd), gpui::rgb(0x3b82f6), 1.0)
                 } else {
                     (gpui::rgb(default_bg), gpui::rgb(default_border), 1.0)
@@ -351,7 +367,8 @@ impl FlowGraph {
                     .flex()
                     .items_center()
                     .justify_center()
-                    // Handle mouse down → start connection
+                    .w(px(handle_size))
+                    .h(px(handle_size))
                     .on_mouse_down(MouseButton::Left, {
                         let state = state.clone();
                         let node_id = node_id.clone();
@@ -359,7 +376,6 @@ impl FlowGraph {
                         move |event, _window, cx| {
                             let mouse_pos = event.position;
                             state.update(cx, |state, _| {
-                                // Find handle center for the from_point
                                 let from_point = state
                                     .find_handle_center(&node_id, &handle_id, handle_position)
                                     .unwrap_or((mouse_pos.x.as_f32(), mouse_pos.y.as_f32()));
@@ -373,12 +389,10 @@ impl FlowGraph {
                                     to_point: (mouse_pos.x.as_f32(), mouse_pos.y.as_f32()),
                                     snap_target: None,
                                 });
-                                // Prevent node drag
                                 state.drag_state = None;
                             });
                         }
                     })
-                    // Handle mouse up → complete connection if valid
                     .on_mouse_up(MouseButton::Left, {
                         let state = state.clone();
                         let node_id = node_id.clone();
@@ -386,7 +400,6 @@ impl FlowGraph {
                         move |_event, _window, cx| {
                             state.update(cx, |state, _| {
                                 if let Some(draft) = state.connecting.take() {
-                                    // Build the connection
                                     let (source, target, source_handle, target_handle) =
                                         if draft.from_type == HandleType::Source {
                                             (
@@ -425,27 +438,19 @@ impl FlowGraph {
                         }
                     });
 
-                let container = match handle.position {
+                let container = match handle_position {
                     HandlePosition::Left => container
                         .left(px(-half))
-                        .top_0()
-                        .bottom_0()
-                        .w(px(handle_size)),
+                        .top(px(node_height * ratio - half)),
                     HandlePosition::Right => container
                         .right(px(-half))
-                        .top_0()
-                        .bottom_0()
-                        .w(px(handle_size)),
+                        .top(px(node_height * ratio - half)),
                     HandlePosition::Top => container
                         .top(px(-half))
-                        .left_0()
-                        .right_0()
-                        .h(px(handle_size)),
+                        .left(px(node_width * ratio - half)),
                     HandlePosition::Bottom => container
                         .bottom(px(-half))
-                        .left_0()
-                        .right_0()
-                        .h(px(handle_size)),
+                        .left(px(node_width * ratio - half)),
                 };
 
                 container.child(dot).into_any_element()
